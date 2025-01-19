@@ -165,7 +165,7 @@ mod ble_bas_peripheral {
         }))
         .unwrap();
 
-        let _ = join(ble_task(runner), async {
+        let _ = select(ble_task(runner), async {
             loop {
                 match advertise("Trouble Example", &mut peripheral).await {
                     Ok(conn) => {
@@ -173,15 +173,16 @@ mod ble_bas_peripheral {
                         let a = gatt_events_task(&server, &conn);
                         let b = custom_task(&server, &conn, stack);
                         // run until any task ends (usually because the connection has been closed),
-                        // then quit the ble demo.
                         select(a, b).await;
-                        break;
                     }
                     Err(e) => {
                         let e = defmt::Debug2Format(&e);
                         self::panic!("[adv] error: {:?}", e);
                     }
                 }
+                // exit the BLE demo after 1 connection attempt
+                info!("attempting to exit BLE demo...");
+                break;
             }
         })
         .await;
